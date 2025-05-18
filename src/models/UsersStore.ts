@@ -60,8 +60,8 @@ export class UsersStore {
     }
     return null;
   }
-  public updateWins(name: string): void {
-    const user = this.users.find((u) => u.name === name);
+  public updateWins(userId: string): void {
+    const user = this.users.find((user) => user.index === userId);
     if (user) {
       user.wins++;
     }

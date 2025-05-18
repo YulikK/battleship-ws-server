@@ -1,22 +1,12 @@
-import {
-  CommandType,
-  User,
-  RegResponse,
-  CustomWebSocket,
-  ErrorMsg,
-  CommandHandler,
-} from '../types/index';
+import { CommandType, User, CustomWebSocket, CommandHandler } from '../types/index';
 import { UsersStore } from '../models/UsersStore';
-import { checkPassword } from '../helpers/passwords';
-import { sendResponse } from '../helpers/helpers';
 import { RoomStore } from '../models/RoomStore';
-import { wss } from '../index';
-import { v4 as uuidv4 } from 'uuid';
 import { GameStore } from '../models/GameStore';
 import { RegistrationHandler } from './handlers/RegistrationHandler';
 import { CreateRoomHandler } from './handlers/CreateRoomHandler';
 import { AddUserToRoomHandler } from './handlers/AddUserToRoomHandler';
 import { AddShipsHandler } from './handlers/AddShipsHandler';
+import { AttackHandler } from './handlers/AttackHandler';
 
 class GameController {
   private static instance: GameController;
@@ -34,6 +24,7 @@ class GameController {
       this.gameStore
     );
     this.handlers[CommandType.ADD_SHIPS] = new AddShipsHandler(this.gameStore);
+    this.handlers[CommandType.ATTACK] = new AttackHandler(this.gameStore, this.usersStore);
   }
 
   public static getInstance(): GameController {

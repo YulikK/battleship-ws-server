@@ -12,4 +12,8 @@ export interface Ship {
   type: ShipType;
 }
 
-export type AttackStatus = 'miss' | 'killed' | 'shot';
+export enum AttackStatus {
+  MISS = 'miss',
+  SHOT = 'shot',
+  KILLED = 'killed',
+}

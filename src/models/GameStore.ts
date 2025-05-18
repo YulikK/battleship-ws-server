@@ -1,4 +1,4 @@
-import { Game } from './Ship';
+import { Game } from './Game';
 
 export class GameStore {
   private static instance: GameStore;
