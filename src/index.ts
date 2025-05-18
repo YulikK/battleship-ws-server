@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import { parseCommand, parseData } from './helpers/helpers';
 import { gameController } from './controllers/GameController';
 import { v4 as uuidv4 } from 'uuid';
-import { CustomWebSocket, CustomWebSocketServer } from './types/types';
+import { CustomWebSocket, CustomWebSocketServer } from './types/index';
 
 dotenv.config();
 

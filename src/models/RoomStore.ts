@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Room } from './Room';
-import { User } from '../types/types';
+import { User } from '../types/index';
 
 export class RoomStore {
   private static instance: RoomStore;

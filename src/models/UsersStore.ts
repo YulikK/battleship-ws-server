@@ -1,8 +1,16 @@
 import { checkPassword, hashPassword } from '../helpers/passwords';
-import { User } from '../types/types';
+import { User } from '../types/index';
 
 export class UsersStore {
+  private static instance: UsersStore;
   private users: User[] = [];
+
+  public static getInstance(): UsersStore {
+    if (!UsersStore.instance) {
+      UsersStore.instance = new UsersStore();
+    }
+    return UsersStore.instance;
+  }
 
   public async addUser(name: string, password: string, userId: string): Promise<User | null> {
     if (this.users.find((user) => user.name === name)) {

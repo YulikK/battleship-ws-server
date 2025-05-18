@@ -1,4 +1,4 @@
-import { CommandType, CustomWebSocket } from '../types/types';
+import { CommandType, CustomWebSocket } from '../types/index';
 
 export function parseCommand(data: any): CommandType | null {
   if (
@@ -19,8 +19,15 @@ export function parseData(data: string): any {
   }
 }
 
-export const sendResponse = (ws: CustomWebSocket, data: unknown) => {
-  ws.send(JSON.stringify(data));
+export const sendResponse = (ws: CustomWebSocket, messageData: unknown) => {
+  let payloadToSend = messageData;
+  if (typeof messageData === 'object' && messageData !== null && 'data' in messageData) {
+    payloadToSend = {
+      ...(messageData as object),
+      data: JSON.stringify(messageData.data),
+    };
+  }
+  ws.send(JSON.stringify(payloadToSend));
   console.log(`\nSend message to ${ws.userId}:`);
-  console.log(JSON.stringify(data, null, 2));
+  console.log(JSON.stringify(payloadToSend, null, 2));
 };
