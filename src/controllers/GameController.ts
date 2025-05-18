@@ -2,12 +2,14 @@ import { CommandType, User, RegResponse, CustomWebSocket, ErrorMsg } from '../ty
 import { UsersStore } from '../models/Users';
 import { checkPassword } from '../helpers/passwords';
 import { sendResponse } from '../helpers/helpers';
+import { RoomStore } from '../models/RoomStore';
+import { wss } from '../index';
+import { v4 as uuidv4 } from 'uuid';
 
 class GameController {
   private static instance: GameController;
   private readonly usersStore = new UsersStore();
-  private readonly rooms: Map<string, any> = new Map();
-
+  private readonly roomStore = RoomStore.getInstance();
   public static getInstance(): GameController {
     if (!GameController.instance) {
       GameController.instance = new GameController();
@@ -20,7 +22,12 @@ class GameController {
       case CommandType.REG:
         this.handleRegistration(ws, data, userId);
         break;
-
+      case CommandType.CREATE_ROOM:
+        this.handleCreateRoom(ws, userId);
+        break;
+      case CommandType.ADD_USER_TO_ROOM:
+        this.handleAddUserToRoom(ws, data, userId);
+        break;
       default:
         console.log(`Don't have handler for ${command} command`);
         break;
@@ -100,6 +107,74 @@ class GameController {
     };
 
     sendResponse(ws, response);
+  }
+
+  private handleCreateRoom(ws: CustomWebSocket, userId: string): void {
+    const user = this.usersStore.getUserById(userId);
+    if (!user) {
+      console.log('User not found');
+      return;
+    }
+
+    const room = this.roomStore.createRoom(user);
+
+    this.broadcastRoomUpdate();
+  }
+
+  private broadcastRoomUpdate(): void {
+    const availableRooms = this.roomStore.getAvailableRooms().map((room) => room.toRoomResponse());
+
+    const response = {
+      type: CommandType.UPDATE_ROOM,
+      data: JSON.stringify(availableRooms),
+      id: 0,
+    };
+
+    wss.clients.forEach((client) => {
+      sendResponse(client, response);
+    });
+  }
+
+  private handleAddUserToRoom(ws: CustomWebSocket, data: any, userId: string): void {
+    const { indexRoom } = data;
+    const user = this.usersStore.getUserById(userId);
+
+    if (!user) {
+      console.log('User not found');
+      return;
+    }
+
+    const room = this.roomStore.getRoom(indexRoom);
+
+    if (room && room.players[0].index === userId) {
+      console.log(`You are already in the room ${indexRoom}`);
+      return;
+    }
+
+    const updatedRoom = this.roomStore.addUserToRoom(indexRoom, user);
+    if (updatedRoom) {
+      const gameId = uuidv4();
+
+      updatedRoom.players.forEach((player) => {
+        const playerConnection = Array.from(wss.clients).find(
+          (client) => client.userId === player.index
+        );
+        if (playerConnection) {
+          const response = {
+            type: CommandType.CREATE_GAME,
+            data: JSON.stringify({
+              idGame: gameId,
+              idPlayer: player.index,
+            }),
+            id: 0,
+          };
+          sendResponse(playerConnection, response);
+        }
+      });
+
+      this.roomStore.removeRoom(indexRoom);
+      this.broadcastRoomUpdate();
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-import { WebSocket as WS } from 'ws';
+import { WebSocketServer, WebSocket as WS } from 'ws';
 
 export enum CommandType {
   REG = 'reg',
@@ -12,13 +12,18 @@ export enum CommandType {
   ATTACK = 'attack',
   RANDOM_ATTACK = 'randomAttack',
   TURN = 'turn',
-  FINISH = 'finish'
+  FINISH = 'finish',
 }
 
 export interface CustomWebSocket extends WS {
   userId?: string;
 }
-export interface ErrorMsg{
+
+export interface CustomWebSocketServer extends Omit<WebSocketServer, 'clients'> {
+  clients: Set<CustomWebSocket>;
+}
+
+export interface ErrorMsg {
   error: boolean;
   errorText: string;
 }

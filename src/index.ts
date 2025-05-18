@@ -3,13 +3,13 @@ import dotenv from 'dotenv';
 import { parseCommand, parseData } from './helpers/helpers';
 import { gameController } from './controllers/GameController';
 import { v4 as uuidv4 } from 'uuid';
-import { CustomWebSocket } from './types/types';
+import { CustomWebSocket, CustomWebSocketServer } from './types/types';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 
-const wss = new WebSocket.Server({ port: Number(PORT) });
+export const wss = new WebSocket.Server({ port: Number(PORT) }) as CustomWebSocketServer;
 
 wss.on('connection', (ws: WebSocket) => {
   const customWs = ws as CustomWebSocket;

@@ -21,5 +21,6 @@ export function parseData(data: string): any {
 
 export const sendResponse = (ws: CustomWebSocket, data: unknown) => {
   ws.send(JSON.stringify(data));
-  console.log(`Send response for ${ws.userId}: ${JSON.stringify(data)}`);
+  console.log(`\nSend message to ${ws.userId}:`);
+  console.log(JSON.stringify(data, null, 2));
 };
