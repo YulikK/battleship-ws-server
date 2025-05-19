@@ -7,6 +7,7 @@ import { CreateRoomHandler } from './handlers/CreateRoomHandler';
 import { AddUserToRoomHandler } from './handlers/AddUserToRoomHandler';
 import { AddShipsHandler } from './handlers/AddShipsHandler';
 import { AttackHandler } from './handlers/AttackHandler';
+import { RandomAttackHandler } from './handlers/RandomAttackHandler';
 
 class GameController {
   private static instance: GameController;
@@ -25,6 +26,10 @@ class GameController {
     );
     this.handlers[CommandType.ADD_SHIPS] = new AddShipsHandler(this.gameStore);
     this.handlers[CommandType.ATTACK] = new AttackHandler(this.gameStore, this.usersStore);
+    this.handlers[CommandType.RANDOM_ATTACK] = new RandomAttackHandler(
+      this.gameStore,
+      this.usersStore
+    );
   }
 
   public static getInstance(): GameController {
