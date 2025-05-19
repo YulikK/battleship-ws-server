@@ -11,6 +11,7 @@ import { RandomAttackHandler } from './handlers/RandomAttackHandler';
 import { wss } from '..';
 import { sendResponse } from '../helpers/helpers';
 import { Room } from '../models/Room';
+import { SinglePlayHandler } from './handlers/SinglePlayHandler';
 
 class GameController {
   private static instance: GameController;
@@ -32,6 +33,11 @@ class GameController {
     this.handlers[CommandType.RANDOM_ATTACK] = new RandomAttackHandler(
       this.gameStore,
       this.usersStore
+    );
+    this.handlers[CommandType.SINGLE_PLAY] = new SinglePlayHandler(
+      this.usersStore,
+      this.roomStore,
+      this.gameStore
     );
   }
 

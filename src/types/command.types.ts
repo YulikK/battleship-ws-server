@@ -9,6 +9,7 @@ export enum CommandType {
   UPDATE_ROOM = 'update_room',
   ADD_SHIPS = 'add_ships',
   START_GAME = 'start_game',
+  SINGLE_PLAY = 'single_play',
   ATTACK = 'attack',
   RANDOM_ATTACK = 'randomAttack',
   TURN = 'turn',

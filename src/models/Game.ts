@@ -3,9 +3,10 @@ import { Ship, Position, AttackStatus, AttackResult } from '../types/index';
 export class Game {
   public ships: Map<string, Ship[]> = new Map();
   public currentPlayerId: string;
-  private hitsByPlayer: Map<string, Position[]> = new Map();
-  private missesByPlayer: Map<string, Position[]> = new Map();
-  private killedByPlayer: Map<string, Position[]> = new Map();
+  public hitsByPlayer: Map<string, Position[]> = new Map();
+  public missesByPlayer: Map<string, Position[]> = new Map();
+  public killedByPlayer: Map<string, Position[]> = new Map();
+  public onTurnChange?: (currentPlayerId: string) => void;
 
   constructor(
     public id: string,
@@ -56,18 +57,23 @@ export class Game {
       return { status: AttackStatus.MISS, isGameOver: false };
     }
 
-    const defenderHits = this.hitsByPlayer.get(defenderId)!;
-    const defenderMisses = this.missesByPlayer.get(defenderId)!;
-    const defenderKilled = this.killedByPlayer.get(defenderId)!;
+    const attackerHits = this.hitsByPlayer.get(attackerId)!;
+    const attackerKilled = this.killedByPlayer.get(attackerId)!;
+    const attackerMisses = this.missesByPlayer.get(attackerId)!;
 
-    const alreadyHit = defenderHits.some((p) => p.x === coords.x && p.y === coords.y);
+    const alreadyKilled = attackerKilled.some((p) => p.x === coords.x && p.y === coords.y);
+    if (alreadyKilled) {
+      return { status: AttackStatus.KILLED, isGameOver: false, isSwitchPlayer: true };
+    }
+
+    const alreadyHit = attackerHits.some((p) => p.x === coords.x && p.y === coords.y);
     if (alreadyHit) {
       return { status: AttackStatus.SHOT, isGameOver: false, isSwitchPlayer: true };
     }
 
-    const alreadyKill = defenderKilled.some((p) => p.x === coords.x && p.y === coords.y);
-    if (alreadyKill) {
-      return { status: AttackStatus.KILLED, isGameOver: false, isSwitchPlayer: true };
+    const alreadyMissed = attackerMisses.some((p) => p.x === coords.x && p.y === coords.y);
+    if (alreadyMissed) {
+      return { status: AttackStatus.MISS, isGameOver: false, isSwitchPlayer: true };
     }
 
     for (const ship of defenderShips) {
@@ -75,26 +81,26 @@ export class Game {
       const isHitOnThisShip = shipCells.some((cell) => cell.x === coords.x && cell.y === coords.y);
 
       if (isHitOnThisShip) {
-        defenderHits.push(coords);
+        attackerHits.push(coords);
 
         const isSunk = shipCells.every((cell) =>
-          defenderHits.some((hit) => hit.x === cell.x && hit.y === cell.y)
+          attackerHits.some((hit) => hit.x === cell.x && hit.y === cell.y)
         );
 
         if (isSunk) {
           shipCells.forEach((cell) => {
-            defenderHits.splice(
-              defenderHits.findIndex((hit) => hit.x === cell.x && hit.y === cell.y),
+            attackerHits.splice(
+              attackerHits.findIndex((hit) => hit.x === cell.x && hit.y === cell.y),
               1
             );
-            if (!defenderKilled.some((killed) => killed.x === cell.x && killed.y === cell.y)) {
-              defenderKilled.push(cell);
+            if (!attackerKilled.some((killed) => killed.x === cell.x && killed.y === cell.y)) {
+              attackerKilled.push(cell);
             }
           });
 
           const allDefenderShipsSunk = defenderShips.every((s) =>
             this.getShipCells(s).every((cell) =>
-              defenderKilled.some((killed) => killed.x === cell.x && killed.y === cell.y)
+              attackerKilled.some((killed) => killed.x === cell.x && killed.y === cell.y)
             )
           );
 
@@ -105,19 +111,22 @@ export class Game {
               winnerId: attackerId,
             };
           }
-          return { status: AttackStatus.KILLED, isGameOver: false };
+          return { status: AttackStatus.KILLED, isGameOver: false, isSwitchPlayer: false };
         }
-        return { status: AttackStatus.SHOT, isGameOver: false };
+        return { status: AttackStatus.SHOT, isGameOver: false, isSwitchPlayer: false };
       }
     }
 
-    defenderMisses.push(coords);
-    return { status: AttackStatus.MISS, isGameOver: false };
+    attackerMisses.push(coords);
+    return { status: AttackStatus.MISS, isGameOver: false, isSwitchPlayer: true };
   }
 
   public switchPlayer(): void {
     const currentPlayerIndex = this.players.indexOf(this.currentPlayerId);
     const nextPlayerIndex = (currentPlayerIndex + 1) % this.players.length;
     this.currentPlayerId = this.players[nextPlayerIndex];
+    if (this.onTurnChange) {
+      this.onTurnChange(this.currentPlayerId);
+    }
   }
 }

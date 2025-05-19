@@ -17,6 +17,7 @@ import { GameStore } from '../../models/GameStore';
 import { UsersStore } from '../../models/UsersStore';
 import { sendResponse } from '../../helpers/helpers';
 import { wss } from '../../index';
+import { Game } from '../../models/Game';
 
 export class RandomAttackHandler implements CommandHandler {
   constructor(
@@ -24,7 +25,29 @@ export class RandomAttackHandler implements CommandHandler {
     private readonly usersStore: UsersStore
   ) {}
 
-  private generateRandomPosition(): Position {
+  private generateRandomPosition(game: Game, indexPlayer: string): Position {
+    const attackerHits = game.hitsByPlayer.get(indexPlayer)!;
+    const attackerKilled = game.killedByPlayer.get(indexPlayer)!;
+    const attackerMisses = game.missesByPlayer.get(indexPlayer)!;
+
+    let position: Position;
+    let isValidPosition = false;
+
+    while (!isValidPosition) {
+      position = {
+        x: Math.floor(Math.random() * 10),
+        y: Math.floor(Math.random() * 10),
+      };
+
+      const isAlreadyHit = attackerHits.some((p) => p.x === position.x && p.y === position.y);
+      const isAlreadyKilled = attackerKilled.some((p) => p.x === position.x && p.y === position.y);
+      const isAlreadyMissed = attackerMisses.some((p) => p.x === position.x && p.y === position.y);
+
+      if (!isAlreadyHit && !isAlreadyKilled && !isAlreadyMissed) {
+        isValidPosition = true;
+        return position;
+      }
+    }
     return {
       x: Math.floor(Math.random() * 10),
       y: Math.floor(Math.random() * 10),
@@ -46,7 +69,7 @@ export class RandomAttackHandler implements CommandHandler {
       return;
     }
 
-    const position = this.generateRandomPosition();
+    const position = this.generateRandomPosition(game, indexPlayer);
     const attackResult: AttackResult = game.performAttack(indexPlayer, position);
 
     game.players.forEach((playerId) => {
@@ -90,6 +113,22 @@ export class RandomAttackHandler implements CommandHandler {
       });
       this.gameStore.removeGame(gameId.toString());
       console.log(`Game ${gameId} finished. Winner: ${winnerId}`);
+
+      const winners = this.usersStore
+        .getAllUsers()
+        .sort((a, b) => b.wins - a.wins)
+        .map((user) => ({
+          name: user.name,
+          wins: user.wins,
+        }));
+
+      Array.from(wss.clients).forEach((client) => {
+        sendResponse(client, {
+          type: CommandType.UPDATE_WINNERS,
+          data: winners,
+          id: 0,
+        });
+      });
       return;
     }
 

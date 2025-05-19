@@ -46,10 +46,5 @@ process.on('SIGINT', () => {
     client.close(1000, 'Server is shutting down');
   });
 
-  setTimeout(() => {
-    wss.close(() => {
-      console.log('WebSocket server closed');
-      process.exit(0);
-    });
-  }, 100);
+  process.exit(0);
 });

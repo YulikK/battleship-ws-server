@@ -30,6 +30,19 @@ export class UsersStore {
     return newUser;
   }
 
+  public addBot(botId: string): User {
+    const botUser: User = {
+      name: 'BOT',
+      hash: 'BOT_HASH',
+      index: botId,
+      wins: 0,
+      isLogin: true,
+    };
+
+    this.users.push(botUser);
+    return botUser;
+  }
+
   public async validateUser(name: string, password: string): Promise<User | null> {
     const user = this.users.find((u) => u.name === name);
     if (!user) {
