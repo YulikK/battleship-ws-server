@@ -8,6 +8,9 @@ import { AddUserToRoomHandler } from './handlers/AddUserToRoomHandler';
 import { AddShipsHandler } from './handlers/AddShipsHandler';
 import { AttackHandler } from './handlers/AttackHandler';
 import { RandomAttackHandler } from './handlers/RandomAttackHandler';
+import { wss } from '..';
+import { sendResponse } from '../helpers/helpers';
+import { Room } from '../models/Room';
 
 class GameController {
   private static instance: GameController;
@@ -17,7 +20,7 @@ class GameController {
   private readonly handlers: Partial<Record<CommandType, CommandHandler>> = {};
 
   private constructor() {
-    this.handlers[CommandType.REG] = new RegistrationHandler(this.usersStore);
+    this.handlers[CommandType.REG] = new RegistrationHandler(this.usersStore, this.roomStore);
     this.handlers[CommandType.CREATE_ROOM] = new CreateRoomHandler(this.usersStore, this.roomStore);
     this.handlers[CommandType.ADD_USER_TO_ROOM] = new AddUserToRoomHandler(
       this.usersStore,
@@ -70,9 +73,70 @@ class GameController {
 
   public handleDisconnect(connectionId: string): void {
     const user = this.usersStore.getUserById(connectionId);
-    if (user) {
-      this.usersStore.updateUser(connectionId, { ...user, isLogin: false });
-      console.log(`User ${user.name} (${connectionId}) disconnected`);
+    if (!user) return;
+
+    this.usersStore.updateUser(connectionId, { ...user, isLogin: false });
+    console.log(`User ${user.name} (${connectionId}) disconnected`);
+
+    const room = this.roomStore.getRoomByUserId(connectionId);
+    if (room) {
+      const updatedRoom = new Room(
+        room.id,
+        room.players.filter((player) => player.index !== connectionId)
+      );
+
+      this.roomStore.updateRoom(room.id, updatedRoom);
+
+      const availableRooms = this.roomStore
+        .getAvailableRooms()
+        .map((room) => room.toRoomResponse());
+      Array.from(wss.clients).forEach((client) => {
+        sendResponse(client, {
+          type: CommandType.UPDATE_ROOM,
+          data: availableRooms,
+          id: 0,
+        });
+      });
+    }
+
+    const game = this.gameStore.getGameByPlayerId(connectionId);
+    if (game) {
+      const winner = game.players.find((playerId) => playerId !== connectionId);
+      if (winner) {
+        this.usersStore.updateWins(winner);
+
+        game.players.forEach((playerId) => {
+          const playerConnection = Array.from(wss.clients).find(
+            (client) => client.connectionId === playerId
+          );
+          if (playerConnection) {
+            sendResponse(playerConnection, {
+              type: CommandType.FINISH,
+              data: { winPlayer: winner },
+              id: 0,
+            });
+          }
+        });
+
+        const winners = this.usersStore
+          .getAllUsers()
+          .sort((a, b) => b.wins - a.wins)
+          .map((user) => ({
+            name: user.name,
+            wins: user.wins,
+          }));
+
+        Array.from(wss.clients).forEach((client) => {
+          sendResponse(client, {
+            type: CommandType.UPDATE_WINNERS,
+            data: winners,
+            id: 0,
+          });
+        });
+
+        this.gameStore.removeGame(game.id);
+        console.log(`Game ${game.id} finished. Winner: ${winner} (by disconnect)`);
+      }
     }
   }
 }

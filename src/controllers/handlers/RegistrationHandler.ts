@@ -8,9 +8,14 @@ import {
 import { UsersStore } from '../../models/UsersStore';
 import { checkPassword } from '../../helpers/passwords';
 import { sendResponse } from '../../helpers/helpers';
+import { RoomStore } from '../../models/RoomStore';
+import { wss } from '../..';
 
 export class RegistrationHandler implements CommandHandler {
-  constructor(private readonly usersStore: UsersStore) {}
+  constructor(
+    private readonly usersStore: UsersStore,
+    private readonly roomStore: RoomStore
+  ) {}
 
   public async handle(ws: CustomWebSocket, data: any, connectionId: string): Promise<void> {
     const { name, password } = data;
@@ -32,6 +37,8 @@ export class RegistrationHandler implements CommandHandler {
         id: 0,
       };
       sendResponse(ws, response);
+      this.broadcastRoomUpdate(ws);
+      this.sendWinners(ws);
       return;
     }
 
@@ -52,6 +59,8 @@ export class RegistrationHandler implements CommandHandler {
         id: 0,
       };
       sendResponse(ws, response);
+      this.broadcastRoomUpdate(ws);
+      this.sendWinners(ws);
       return;
     }
 
@@ -71,5 +80,32 @@ export class RegistrationHandler implements CommandHandler {
       id: 0,
     };
     sendResponse(ws, response);
+  }
+
+  private broadcastRoomUpdate(ws: CustomWebSocket): void {
+    const availableRooms = this.roomStore.getAvailableRooms().map((room) => room.toRoomResponse());
+    sendResponse(ws, {
+      type: CommandType.UPDATE_ROOM,
+      data: availableRooms,
+      id: 0,
+    });
+  }
+
+  private sendWinners(ws: CustomWebSocket): void {
+    const winners = this.usersStore
+      .getAllUsers()
+      .sort((a, b) => b.wins - a.wins)
+      .map((user) => ({
+        name: user.name,
+        wins: user.wins,
+      }));
+
+    Array.from(wss.clients).forEach((client) => {
+      sendResponse(client, {
+        type: CommandType.UPDATE_WINNERS,
+        data: winners,
+        id: 0,
+      });
+    });
   }
 }

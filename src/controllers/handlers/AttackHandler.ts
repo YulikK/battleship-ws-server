@@ -80,6 +80,23 @@ export class AttackHandler implements CommandHandler {
           sendResponse(playerConnection, finishResponse);
         }
       });
+
+      const winners = this.usersStore
+        .getAllUsers()
+        .sort((a, b) => b.wins - a.wins)
+        .map((user) => ({
+          name: user.name,
+          wins: user.wins,
+        }));
+
+      Array.from(wss.clients).forEach((client) => {
+        sendResponse(client, {
+          type: CommandType.UPDATE_WINNERS,
+          data: winners,
+          id: 0,
+        });
+      });
+
       this.gameStore.removeGame(gameId.toString());
       console.log(`Game ${gameId} finished. Winner: ${winnerId}`);
       return;

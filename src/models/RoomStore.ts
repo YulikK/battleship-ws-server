@@ -50,4 +50,11 @@ export class RoomStore {
       null
     );
   }
+
+  public updateRoom(roomId: string, updatedRoom: Room): void {
+    const roomIndex = this.rooms.findIndex((room) => room.id === roomId);
+    if (roomIndex !== -1) {
+      this.rooms[roomIndex] = updatedRoom;
+    }
+  }
 }

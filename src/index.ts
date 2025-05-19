@@ -14,7 +14,7 @@ export const wss = new WebSocket.Server({ port: Number(PORT) }) as CustomWebSock
 wss.on('connection', (ws: WebSocket) => {
   const customWs = ws as CustomWebSocket;
   const connectionId = uuidv4();
-  customWs.connectionId = connectionId;
+  customWs.connectionId = ws.protocol ? ws.protocol : connectionId;
   console.log('New connection:', connectionId);
 
   customWs.on('message', (message: string) => {
@@ -25,7 +25,7 @@ wss.on('connection', (ws: WebSocket) => {
       if (command) {
         gameController.handleCommand(customWs, command, data, connectionId);
       } else {
-        console.error('Unknown command');
+        console.error('Unknown command', command);
       }
     } catch (error) {
       console.error(error);

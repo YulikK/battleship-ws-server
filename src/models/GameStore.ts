@@ -26,4 +26,10 @@ export class GameStore {
   public removeGame(gameId: string): void {
     this.games = this.games.filter((game) => game.id !== gameId);
   }
+
+  public getGameByPlayerId(connectionId: string): Game | null {
+    return (
+      this.games.find((game) => game.players.some((player) => player === connectionId)) || null
+    );
+  }
 }
