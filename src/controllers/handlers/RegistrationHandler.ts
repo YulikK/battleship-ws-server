@@ -12,7 +12,7 @@ import { sendResponse } from '../../helpers/helpers';
 export class RegistrationHandler implements CommandHandler {
   constructor(private readonly usersStore: UsersStore) {}
 
-  public async handle(ws: CustomWebSocket, data: any, userId: string): Promise<void> {
+  public async handle(ws: CustomWebSocket, data: any, connectionId: string): Promise<void> {
     const { name, password } = data;
     const errorMsg: ErrorMsg = {
       error: false,
@@ -21,7 +21,7 @@ export class RegistrationHandler implements CommandHandler {
     const user = this.usersStore.getUserByName(name);
 
     if (!user) {
-      const newUser = await this.usersStore.addUser(name, password, userId);
+      const newUser = await this.usersStore.addUser(name, password, connectionId);
       console.log(`New user registered: ${newUser}`);
       const response: RegResponse = {
         type: CommandType.REG,
@@ -37,11 +37,11 @@ export class RegistrationHandler implements CommandHandler {
 
     const isPasswordCorrect = await checkPassword(password, user.hash);
 
-    if (isPasswordCorrect && !user.isLoggedIn) {
+    if (isPasswordCorrect && !user.isLogin) {
       const updatedUser = this.usersStore.updateUser(user.index, {
         ...user,
-        index: userId,
-        isLoggedIn: true,
+        index: connectionId,
+        isLogin: true,
       });
       const response: RegResponse = {
         type: CommandType.REG,

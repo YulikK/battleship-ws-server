@@ -11,6 +11,7 @@ import {
   FinishResponse,
   FinishResponseData,
   AttackStatus,
+  AttackResult,
 } from '../../types/index';
 import { GameStore } from '../../models/GameStore';
 import { UsersStore } from '../../models/UsersStore';
@@ -23,13 +24,12 @@ export class AttackHandler implements CommandHandler {
     private readonly usersStore: UsersStore
   ) {}
 
-  public handle(ws: CustomWebSocket, data: AttackRequestData, userId: string): void {
+  public handle(ws: CustomWebSocket, data: AttackRequestData, connectionId: string): void {
     const { gameId, x, y, indexPlayer } = data;
 
     const game = this.gameStore.getGame(gameId.toString());
 
     if (!game) {
-      // TODO send error to client
       console.error(`AttackHandler: Game ${gameId} not found.`);
       return;
     }
@@ -39,11 +39,12 @@ export class AttackHandler implements CommandHandler {
       return;
     }
 
-    const attackResult: { status: AttackStatus; isGameOver: boolean; winnerId?: string } =
-      game.performAttack(indexPlayer, { x, y });
+    const attackResult: AttackResult = game.performAttack(indexPlayer, { x, y });
 
     game.players.forEach((playerId) => {
-      const playerConnection = Array.from(wss.clients).find((client) => client.userId === playerId);
+      const playerConnection = Array.from(wss.clients).find(
+        (client) => client.connectionId === playerId
+      );
       if (playerConnection) {
         const attackResponseData: AttackResponseData = {
           position: { x, y },
@@ -65,7 +66,7 @@ export class AttackHandler implements CommandHandler {
 
       game.players.forEach((playerId) => {
         const playerConnection = Array.from(wss.clients).find(
-          (client) => client.userId === playerId
+          (client) => client.connectionId === playerId
         );
         if (playerConnection) {
           const finishResponseData: FinishResponseData = {
@@ -85,7 +86,7 @@ export class AttackHandler implements CommandHandler {
     }
 
     let nextPlayerId: string;
-    if (attackResult.status === AttackStatus.MISS) {
+    if (attackResult.status === AttackStatus.MISS || attackResult.isSwitchPlayer) {
       game.switchPlayer();
       nextPlayerId = game.currentPlayerId;
       console.log(`Game ${game.id}: Turn switched to player ${nextPlayerId} after a miss.`);
@@ -97,7 +98,9 @@ export class AttackHandler implements CommandHandler {
     }
 
     game.players.forEach((playerId) => {
-      const playerConnection = Array.from(wss.clients).find((client) => client.userId === playerId);
+      const playerConnection = Array.from(wss.clients).find(
+        (client) => client.connectionId === playerId
+      );
       if (playerConnection) {
         const turnResponseData: TurnResponseData = {
           currentPlayer: nextPlayerId,

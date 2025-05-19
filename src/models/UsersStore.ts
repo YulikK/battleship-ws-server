@@ -12,7 +12,7 @@ export class UsersStore {
     return UsersStore.instance;
   }
 
-  public async addUser(name: string, password: string, userId: string): Promise<User | null> {
+  public async addUser(name: string, password: string, connectionId: string): Promise<User | null> {
     if (this.users.find((user) => user.name === name)) {
       return null;
     }
@@ -21,9 +21,9 @@ export class UsersStore {
     const newUser: User = {
       name,
       hash,
-      index: userId,
+      index: connectionId,
       wins: 0,
-      isLoggedIn: true,
+      isLogin: true,
     };
 
     this.users.push(newUser);
@@ -48,26 +48,26 @@ export class UsersStore {
     return this.users.find((u) => u.name === name) || null;
   }
 
-  public getUserById(userId: string): User | null {
-    return this.users.find((user) => user.index === userId) || null;
+  public getUserById(connectionId: string): User | null {
+    return this.users.find((user) => user.index === connectionId) || null;
   }
 
-  public updateUser(userId: string, updatedUser: User): User | null {
-    const index = this.users.findIndex((user) => user.index === userId);
+  public updateUser(connectionId: string, updatedUser: User): User | null {
+    const index = this.users.findIndex((user) => user.index === connectionId);
     if (index !== -1) {
       this.users[index] = updatedUser;
       return this.users[index];
     }
     return null;
   }
-  public updateWins(userId: string): void {
-    const user = this.users.find((user) => user.index === userId);
+  public updateWins(connectionId: string): void {
+    const user = this.users.find((user) => user.index === connectionId);
     if (user) {
       user.wins++;
     }
   }
 
   public isAlreadyLogin(name: string): boolean {
-    return this.users.some((u) => u.name === name && u.isLoggedIn);
+    return this.users.some((user) => user.name === name && user.isLogin);
   }
 }

@@ -15,10 +15,9 @@ export class RoomStore {
     return RoomStore.instance;
   }
 
-  public createRoom(creator: User): Room {
+  public createRoom(): Room {
     const roomId = uuidv4();
     const room = new Room(roomId);
-    room.addPlayer(creator);
     this.rooms.push(room);
     return room;
   }
@@ -45,9 +44,10 @@ export class RoomStore {
     return this.rooms.filter((room) => !room.isFull());
   }
 
-  public getRoomByUserId(userId: string): Room | null {
+  public getRoomByUserId(connectionId: string): Room | null {
     return (
-      this.rooms.find((room) => room.players.some((player) => player.index === userId)) || null
+      this.rooms.find((room) => room.players.some((player) => player.index === connectionId)) ||
+      null
     );
   }
 }

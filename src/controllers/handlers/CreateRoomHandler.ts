@@ -15,14 +15,14 @@ export class CreateRoomHandler implements CommandHandler {
     private readonly roomStore: RoomStore
   ) {}
 
-  public handle(ws: CustomWebSocket, data: any, userId: string): void {
-    const user = this.usersStore.getUserById(userId);
+  public handle(ws: CustomWebSocket, data: any, connectionId: string): void {
+    const user = this.usersStore.getUserById(connectionId);
     if (!user) {
       console.log('User not found');
       return;
     }
 
-    this.roomStore.createRoom(user);
+    this.roomStore.createRoom();
     this.broadcastRoomUpdate();
   }
 

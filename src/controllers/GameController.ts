@@ -34,29 +34,40 @@ class GameController {
     return GameController.instance;
   }
 
-  public handleCommand(ws: CustomWebSocket, command: CommandType, data: any, userId: string): void {
+  public handleCommand(
+    ws: CustomWebSocket,
+    command: CommandType,
+    data: any,
+    connectionId: string
+  ): void {
     const handler = this.handlers[command];
     if (handler) {
       try {
-        const result = handler.handle(ws, data, userId);
+        const result = handler.handle(ws, data, connectionId);
         if (result instanceof Promise) {
           result.catch((error) => {
-            console.error(`Error while processing command ${command} for user ${userId}:`, error);
+            console.error(
+              `Error while processing command ${command} for connection ${connectionId}:`,
+              error
+            );
           });
         }
       } catch (error) {
-        console.error(`Error when processing command ${command} for user ${userId}:`, error);
+        console.error(
+          `Error when processing command ${command} for connection ${connectionId}:`,
+          error
+        );
       }
     } else {
       console.log(`No handler for command ${command}`);
     }
   }
 
-  public handleDisconnect(userId: string): void {
-    const user = this.usersStore.getUserById(userId);
+  public handleDisconnect(connectionId: string): void {
+    const user = this.usersStore.getUserById(connectionId);
     if (user) {
-      this.usersStore.updateUser(userId, { ...user, isLoggedIn: false });
-      console.log(`User ${user.name} (${userId}) disconnected`);
+      this.usersStore.updateUser(connectionId, { ...user, isLogin: false });
+      console.log(`User ${user.name} (${connectionId}) disconnected`);
     }
   }
 }

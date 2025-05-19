@@ -28,6 +28,6 @@ export const sendResponse = (ws: CustomWebSocket, messageData: unknown) => {
     };
   }
   ws.send(JSON.stringify(payloadToSend));
-  console.log(`\nSend message to ${ws.userId}:`);
+  console.log(`\nSend message to ${ws.connectionId}:`);
   console.log(JSON.stringify(payloadToSend, null, 2));
 };

@@ -3,5 +3,5 @@ export interface User {
   hash: string;
   index: string;
   wins: number;
-  isLoggedIn: boolean;
+  isLogin: boolean;
 }

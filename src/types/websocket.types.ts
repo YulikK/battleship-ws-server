@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 
 export interface CustomWebSocket extends WebSocket {
-  userId?: string;
+  connectionId?: string;
 }
 
 export interface CustomWebSocketServer extends Omit<WebSocketServer, 'clients'> {

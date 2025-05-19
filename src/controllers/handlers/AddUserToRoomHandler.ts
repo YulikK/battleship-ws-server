@@ -19,47 +19,71 @@ export class AddUserToRoomHandler implements CommandHandler {
     private readonly gameStore: GameStore
   ) {}
 
-  public handle(ws: CustomWebSocket, data: any, userId: string): void {
+  public handle(ws: CustomWebSocket, data: any, connectionId: string): void {
     const { indexRoom } = data;
-    const user = this.usersStore.getUserById(userId);
+    const user = this.usersStore.getUserById(connectionId);
 
     if (!user) {
-      console.log('User not found');
+      console.log(
+        `User not found ${JSON.stringify(connectionId)} in store: ${JSON.stringify(this.usersStore.getAllUsers())}`
+      );
       return;
     }
 
     const room = this.roomStore.getRoom(indexRoom);
-    if (room && room.players[0].index === userId) {
+    if (
+      room &&
+      room.players &&
+      room.players.findIndex((player) => player.index === connectionId) !== -1
+    ) {
       console.log(`User ${user.name} try to join in his room: ${indexRoom}`);
       return;
     }
 
+    const allRooms = this.roomStore.getAvailableRooms();
+
+    console.log('all rooms: ', allRooms);
+    let isNeedUpdate = false;
+    allRooms.forEach((room) => {
+      console.log('room: ', room);
+      if (room.id.toString() !== indexRoom.toString()) {
+        const isUserHere = room.players.findIndex((player) => player.index === connectionId);
+        console.log('isUserHere: ', isUserHere);
+        if (isUserHere !== -1) {
+          room.players.splice(isUserHere, 1);
+          console.log('room after delete: ', room);
+          isNeedUpdate = true;
+        }
+      }
+    });
+
     const updatedRoom = this.roomStore.addUserToRoom(indexRoom, user);
     if (updatedRoom) {
-      const gameId = uuidv4();
-      this.gameStore.createGame(
-        gameId,
-        updatedRoom.players.map((player) => player.index)
-      );
-
-      updatedRoom.players.forEach((player) => {
-        const playerConnection = Array.from(wss.clients).find(
-          (client) => client.userId === player.index
+      if (updatedRoom.players.length === 2) {
+        const gameId = uuidv4();
+        this.gameStore.createGame(
+          gameId,
+          updatedRoom.players.map((player) => player.index)
         );
-        if (playerConnection) {
-          const response: CreateGameResponse = {
-            type: CommandType.CREATE_GAME,
-            data: {
-              idGame: gameId,
-              idPlayer: player.index,
-            },
-            id: 0,
-          };
-          sendResponse(playerConnection, response);
-        }
-      });
+        updatedRoom.players.forEach((player) => {
+          const playerConnection = Array.from(wss.clients).find(
+            (client) => client.connectionId === player.index
+          );
+          if (playerConnection) {
+            const response: CreateGameResponse = {
+              type: CommandType.CREATE_GAME,
+              data: {
+                idGame: gameId,
+                idPlayer: player.index,
+              },
+              id: 0,
+            };
+            sendResponse(playerConnection, response);
+          }
+        });
 
-      this.roomStore.removeRoom(indexRoom);
+        this.roomStore.removeRoom(indexRoom);
+      }
       this.broadcastRoomUpdate();
     } else {
       console.log(`Failed to add user ${user.name} to room ${indexRoom}`);

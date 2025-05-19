@@ -17,3 +17,10 @@ export enum AttackStatus {
   SHOT = 'shot',
   KILLED = 'killed',
 }
+
+export type AttackResult = {
+  status: AttackStatus;
+  isGameOver: boolean;
+  winnerId?: string;
+  isSwitchPlayer?: boolean;
+};

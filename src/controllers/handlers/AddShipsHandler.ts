@@ -6,7 +6,7 @@ import { wss } from '../../index';
 export class AddShipsHandler implements CommandHandler {
   constructor(private readonly gameStore: GameStore) {}
 
-  public handle(ws: CustomWebSocket, data: any, userId: string): void {
+  public handle(ws: CustomWebSocket, data: any, connectionId: string): void {
     const { gameId, ships, indexPlayer } = data;
 
     const game = this.gameStore.getGame(gameId);
@@ -23,22 +23,12 @@ export class AddShipsHandler implements CommandHandler {
 
     game.addShips(indexPlayer, ships);
 
-    const playerSpecificResponse: StartGameResponse = {
-      type: CommandType.START_GAME,
-      data: {
-        ships: game.getPlayerShips(indexPlayer),
-        currentPlayerIndex: indexPlayer,
-      },
-      id: 0,
-    };
-    sendResponse(ws, playerSpecificResponse);
-
     if (game.isReady()) {
       const firstPlayerId = game.players[0];
 
       game.players.forEach((playerId) => {
         const playerConnection = Array.from(wss.clients).find(
-          (client) => client.userId === playerId
+          (client) => client.connectionId === playerId
         );
         if (playerConnection) {
           const gameStartResponse: StartGameResponse = {

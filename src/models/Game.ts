@@ -1,10 +1,11 @@
-import { Ship, Position, AttackStatus } from '../types/index';
+import { Ship, Position, AttackStatus, AttackResult } from '../types/index';
 
 export class Game {
   public ships: Map<string, Ship[]> = new Map();
   public currentPlayerId: string;
   private hitsByPlayer: Map<string, Position[]> = new Map();
   private missesByPlayer: Map<string, Position[]> = new Map();
+  private killedByPlayer: Map<string, Position[]> = new Map();
 
   constructor(
     public id: string,
@@ -14,6 +15,7 @@ export class Game {
     this.players.forEach((playerId) => {
       this.hitsByPlayer.set(playerId, []);
       this.missesByPlayer.set(playerId, []);
+      this.killedByPlayer.set(playerId, []);
     });
   }
 
@@ -41,10 +43,7 @@ export class Game {
     return cells;
   }
 
-  public performAttack(
-    attackerId: string,
-    coords: Position
-  ): { status: AttackStatus; isGameOver: boolean; winnerId?: string } {
+  public performAttack(attackerId: string, coords: Position): AttackResult {
     const defenderId = this.players.find((p) => p !== attackerId);
     if (!defenderId) {
       console.error(`Game ${this.id}: Defender not found for attacker ${attackerId}.`);
@@ -59,30 +58,52 @@ export class Game {
 
     const defenderHits = this.hitsByPlayer.get(defenderId)!;
     const defenderMisses = this.missesByPlayer.get(defenderId)!;
+    const defenderKilled = this.killedByPlayer.get(defenderId)!;
+
+    const alreadyHit = defenderHits.some((p) => p.x === coords.x && p.y === coords.y);
+    if (alreadyHit) {
+      return { status: AttackStatus.SHOT, isGameOver: false, isSwitchPlayer: true };
+    }
+
+    const alreadyKill = defenderKilled.some((p) => p.x === coords.x && p.y === coords.y);
+    if (alreadyKill) {
+      return { status: AttackStatus.KILLED, isGameOver: false, isSwitchPlayer: true };
+    }
 
     for (const ship of defenderShips) {
       const shipCells = this.getShipCells(ship);
       const isHitOnThisShip = shipCells.some((cell) => cell.x === coords.x && cell.y === coords.y);
 
       if (isHitOnThisShip) {
-        const alreadyHit = defenderHits.some((p) => p.x === coords.x && p.y === coords.y);
-        if (!alreadyHit) {
-          defenderHits.push(coords);
-        }
+        defenderHits.push(coords);
 
         const isSunk = shipCells.every((cell) =>
           defenderHits.some((hit) => hit.x === cell.x && hit.y === cell.y)
         );
 
         if (isSunk) {
+          shipCells.forEach((cell) => {
+            defenderHits.splice(
+              defenderHits.findIndex((hit) => hit.x === cell.x && hit.y === cell.y),
+              1
+            );
+            if (!defenderKilled.some((killed) => killed.x === cell.x && killed.y === cell.y)) {
+              defenderKilled.push(cell);
+            }
+          });
+
           const allDefenderShipsSunk = defenderShips.every((s) =>
             this.getShipCells(s).every((cell) =>
-              defenderHits.some((hit) => hit.x === cell.x && hit.y === cell.y)
+              defenderKilled.some((killed) => killed.x === cell.x && killed.y === cell.y)
             )
           );
 
           if (allDefenderShipsSunk) {
-            return { status: AttackStatus.KILLED, isGameOver: true, winnerId: attackerId };
+            return {
+              status: AttackStatus.KILLED,
+              isGameOver: true,
+              winnerId: attackerId,
+            };
           }
           return { status: AttackStatus.KILLED, isGameOver: false };
         }
@@ -90,10 +111,7 @@ export class Game {
       }
     }
 
-    const alreadyMissed = defenderMisses.some((p) => p.x === coords.x && p.y === coords.y);
-    if (!alreadyMissed) {
-      defenderMisses.push(coords);
-    }
+    defenderMisses.push(coords);
     return { status: AttackStatus.MISS, isGameOver: false };
   }
 

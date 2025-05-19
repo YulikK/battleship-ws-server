@@ -13,9 +13,9 @@ export const wss = new WebSocket.Server({ port: Number(PORT) }) as CustomWebSock
 
 wss.on('connection', (ws: WebSocket) => {
   const customWs = ws as CustomWebSocket;
-  const userId = uuidv4();
-  customWs.userId = userId;
-  console.log('New connection:', userId);
+  const connectionId = uuidv4();
+  customWs.connectionId = connectionId;
+  console.log('New connection:', connectionId);
 
   customWs.on('message', (message: string) => {
     try {
@@ -23,7 +23,7 @@ wss.on('connection', (ws: WebSocket) => {
       const command = parseCommand(parsedData);
       const data = parsedData.data ? parseData(parsedData.data) : null;
       if (command) {
-        gameController.handleCommand(customWs, command, data, userId);
+        gameController.handleCommand(customWs, command, data, connectionId);
       } else {
         console.error('Unknown command');
       }
@@ -33,7 +33,7 @@ wss.on('connection', (ws: WebSocket) => {
   });
 
   customWs.on('close', () => {
-    gameController.handleDisconnect(userId);
+    gameController.handleDisconnect(connectionId);
   });
 });
 

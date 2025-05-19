@@ -6,5 +6,5 @@ export interface ErrorMsg {
 }
 
 export interface CommandHandler {
-  handle(ws: CustomWebSocket, data: any, userId: string): void | Promise<void>;
+  handle(ws: CustomWebSocket, data: any, connectionId: string): void | Promise<void>;
 }
