@@ -38,3 +38,18 @@ wss.on('connection', (ws: WebSocket) => {
 });
 
 console.log(`WebSocket start on the port ${PORT}`);
+
+process.on('SIGINT', () => {
+  console.log('\nServer is shutting down');
+
+  Array.from(wss.clients).forEach((client: CustomWebSocket) => {
+    client.close(1000, 'Server is shutting down');
+  });
+
+  setTimeout(() => {
+    wss.close(() => {
+      console.log('WebSocket server closed');
+      process.exit(0);
+    });
+  }, 100);
+});
